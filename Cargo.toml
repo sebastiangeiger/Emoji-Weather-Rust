@@ -1,0 +1,8 @@
+[package]
+
+name = "emoji_weather_rust"
+version = "0.0.1"
+authors = ["Sebastian Geiger"]
+
+[dependencies]
+hyper = "0.3.0"
