@@ -1,6 +1,9 @@
 use std::env;
 use std::env::VarError;
 
+fn main(){
+
+}
 
 #[derive(Debug, Eq, PartialEq)]
 struct Configuration {
