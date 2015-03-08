@@ -1,5 +1,4 @@
 use std::env;
-use std::env::VarError;
 
 fn main(){
 
@@ -10,12 +9,17 @@ struct Configuration {
     api_key: String,
 }
 
-type ConfigurationResult = Result<Configuration, VarError>;
+#[derive(Debug, Eq, PartialEq)]
+struct ProgramError {
+    message: String,
+}
+
+type ConfigurationResult = Result<Configuration, ProgramError>;
 
 fn read_configuration() -> ConfigurationResult {
     match env::var("FORECAST_IO_API_KEY") {
         Ok(api_key) => Ok(Configuration { api_key: api_key }),
-        Err(error) => Err(error)
+        Err(_) => Err(ProgramError { message: "ENV['FORECAST_IO_API_KEY'] not set".to_string() })
     }
 }
 
@@ -24,6 +28,7 @@ mod tests {
     use std::env;
     use read_configuration;
     use Configuration;
+    use ProgramError;
 
     #[test]
     fn test_configuration_equality() {
@@ -40,5 +45,9 @@ mod tests {
         env::set_var("FORECAST_IO_API_KEY", "123-KEY-456");
         let config = Configuration { api_key: "123-KEY-456".to_string() };
         assert_eq!(read_configuration(), Ok(config));
+
+        env::remove_var("FORECAST_IO_API_KEY");
+        let error = ProgramError { message: "ENV['FORECAST_IO_API_KEY'] not set".to_string() };
+        assert_eq!(read_configuration(), Err(error));
     }
 }
