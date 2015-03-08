@@ -1,8 +1,21 @@
 #![feature(core)]
+#![feature(io)]
+extern crate hyper;
+
 use std::env;
+use std::io::Read;
+
+use hyper::Client;
+use hyper::header::Connection;
+use hyper::header::ConnectionOption;
+use hyper::client::response::Response as Response;
+use hyper::HttpError as HttpError;
 
 fn main(){
-
+    match read_configuration() {
+        Ok(config) => ask_api_for_weather(&config),
+        Err(error) => println!("Something went wrong: {}", error.message)
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -47,6 +60,24 @@ impl Configuration {
         result.push_str(",");
         result.push_str(self.lng.as_slice());
         result
+    }
+}
+
+fn ask_api_for_weather(configuration : &Configuration) {
+    let mut client = Client::new();
+
+    let response : Result<Response, HttpError> = client.get(configuration.to_url().as_slice())
+        .header(Connection(vec![ConnectionOption::Close]))
+        .send();
+
+    match response {
+        Ok(mut res) => {
+            let mut body = String::new();
+            res.read_to_string(&mut body).unwrap();
+
+            println!("Response: {}", body);
+        },
+        Err(_) => println!("Something went wrong")
     }
 }
 
