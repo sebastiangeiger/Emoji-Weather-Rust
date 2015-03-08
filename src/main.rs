@@ -1,3 +1,4 @@
+#![feature(core)]
 use std::env;
 
 fn main(){
@@ -35,6 +36,20 @@ fn read_configuration() -> ConfigurationResult {
     }
 }
 
+type Url = String;
+
+impl Configuration {
+    fn to_url(&self) -> Url {
+        let mut result : Url = "https://api.forecast.io/forecast/".to_string();
+        result.push_str(self.api_key.as_slice());
+        result.push_str("/");
+        result.push_str(self.lat.as_slice());
+        result.push_str(",");
+        result.push_str(self.lng.as_slice());
+        result
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::env;
@@ -65,5 +80,15 @@ mod tests {
         env::remove_var("FORECAST_IO_API_KEY");
         let error = ProgramError { message: "ENV['FORECAST_IO_API_KEY'] not set".to_string() };
         assert_eq!(read_configuration(), Err(error));
+    }
+
+    #[test]
+    fn test_configuration_to_url(){
+        let config = Configuration {
+            api_key: "123-KEY-456".to_string(),
+            lat: "33.835297".to_string(),
+            lng: "-84.321231".to_string(),
+        };
+        assert_eq!(config.to_url(), "https://api.forecast.io/forecast/123-KEY-456/33.835297,-84.321231".to_string());
     }
 }
