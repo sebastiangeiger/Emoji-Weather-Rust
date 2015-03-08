@@ -5,15 +5,15 @@ fn main(){
 }
 
 #[derive(Debug, Eq, PartialEq)]
+struct ProgramError {
+    message: String,
+}
+
+#[derive(Debug, Eq, PartialEq)]
 struct Configuration {
     api_key: String,
     lat: String,
     lng: String,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-struct ProgramError {
-    message: String,
 }
 
 type ConfigurationResult = Result<Configuration, ProgramError>;
