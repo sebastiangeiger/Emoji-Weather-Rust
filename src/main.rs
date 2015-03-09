@@ -18,8 +18,68 @@ use hyper::HttpError as HttpError;
 #[allow(dead_code)]
 fn main(){
     match ask_api_for_weather() {
-        Ok(current_conditions) => println!("It is: {}", current_conditions.icon),
+        Ok(current_conditions) => {
+            let emoji = WeatherIcons::new(current_conditions.icon.as_slice()).to_emoji();
+            println!("{}", emoji)
+        },
         Err(error) => panic!("Something went wrong: {}", error.message),
+    }
+}
+
+fn ask_api_for_weather() -> Result<CurrentWeatherConditions, ProgramError> {
+    let configuration = try!(read_configuration());
+    let body = try!(get_request(&configuration.to_url()));
+    let weather_conditions = try!(parse_out_current_conditions(body.as_slice()));
+    Ok(weather_conditions)
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum WeatherIcons {
+    ClearDay,
+    ClearNight,
+    Rain,
+    Snow,
+    Sleet,
+    Wind,
+    Fog,
+    Cloudy,
+    PartlyCloudyDay,
+    PartlyCloudyNight,
+    Unknown
+}
+
+impl WeatherIcons {
+    fn new(api_icon_name : &str) -> WeatherIcons {
+        match api_icon_name {
+            "clear-day"           => WeatherIcons::ClearDay,
+            "clear-night"         => WeatherIcons::ClearNight,
+            "rain"                => WeatherIcons::Rain,
+            "snow"                => WeatherIcons::Snow,
+            "sleet"               => WeatherIcons::Sleet,
+            "wind"                => WeatherIcons::Wind,
+            "fog"                 => WeatherIcons::Fog,
+            "cloudy"              => WeatherIcons::Cloudy,
+            "partly-cloudy-day"   => WeatherIcons::PartlyCloudyDay,
+            "partly-cloudy-night" => WeatherIcons::PartlyCloudyNight,
+            _                     => WeatherIcons::Unknown
+        }
+    }
+
+    fn to_emoji(&self) -> String {
+        let result = match *self {
+            WeatherIcons::ClearDay          => "🌞 ",
+            WeatherIcons::ClearNight        => "🌚 ",
+            WeatherIcons::Rain              => "☔️ ",
+            WeatherIcons::Snow              => "⛄️ ",
+            WeatherIcons::Sleet             => "☔️❄️ ",
+            WeatherIcons::Wind              => "💨 ",
+            WeatherIcons::Fog               => "🌁 ",
+            WeatherIcons::Cloudy            => "☁️ ",
+            WeatherIcons::PartlyCloudyDay   => "⛅️ ",
+            WeatherIcons::PartlyCloudyNight => "🌚☁️ ",
+            WeatherIcons::Unknown           => "❓ ",
+        };
+        result.to_string()
     }
 }
 
@@ -66,13 +126,6 @@ impl Configuration {
         result.push_str(self.lng.as_slice());
         result
     }
-}
-
-fn ask_api_for_weather() -> Result<CurrentWeatherConditions, ProgramError> {
-    let configuration = try!(read_configuration());
-    let body = try!(get_request(&configuration.to_url()));
-    let weather_conditions = try!(parse_out_current_conditions(body.as_slice()));
-    Ok(weather_conditions)
 }
 
 fn get_request(url : &Url) -> Result<String, ProgramError>{
@@ -129,6 +182,7 @@ mod tests {
     use read_configuration;
     use parse_out_current_conditions;
     use Configuration;
+    use WeatherIcons;
     use ProgramError;
 
     #[test]
@@ -170,5 +224,17 @@ mod tests {
     fn test_parse_json(){
         let json = r##"{"latitude":37.8267,"longitude":-122.423,"timezone":"America/Los_Angeles","offset":-7,"currently":{"time":1425827066,"summary":"Partly Cloudy","icon":"partly-cloudy-day","nearestStormDistance":3,"nearestStormBearing":37,"precipIntensity":0,"precipProbability":0,"temperature":50.87,"apparentTemperature":50.87,"dewPoint":48.98,"humidity":0.93,"windSpeed":3.09,"windBearing":291,"visibility":4.19,"cloudCover":0.53,"pressure":1018.05,"ozone":311.83}}"##;
         assert_eq!(parse_out_current_conditions(json).unwrap().icon, "partly-cloudy-day".to_string());
+    }
+
+    #[test]
+    fn test_weather_icon_constructor(){
+        assert_eq!(WeatherIcons::new("clear-day"), WeatherIcons::ClearDay);
+        assert_eq!(WeatherIcons::new("clear-night"), WeatherIcons::ClearNight);
+    }
+
+    #[test]
+    fn test_weather_icon_to_emoji(){
+        assert_eq!(WeatherIcons::ClearDay.to_emoji(), "🌞 ".to_string());
+        assert_eq!(WeatherIcons::ClearNight.to_emoji(), "🌚 ".to_string());
     }
 }
