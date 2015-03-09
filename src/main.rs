@@ -17,13 +17,9 @@ use hyper::HttpError as HttpError;
 
 #[allow(dead_code)]
 fn main(){
-    match read_configuration() {
-        Ok(config) =>
-            match ask_api_for_weather(&config) {
-                Ok(current_conditions) => println!("It is: {}", current_conditions.icon),
-                Err(error) => println!("Something went wrong: {}", error.message),
-            },
-        Err(error) => println!("Something went wrong: {}", error.message)
+    match ask_api_for_weather() {
+        Ok(current_conditions) => println!("It is: {}", current_conditions.icon),
+        Err(error) => panic!("Something went wrong: {}", error.message),
     }
 }
 
@@ -72,22 +68,31 @@ impl Configuration {
     }
 }
 
-fn ask_api_for_weather(configuration : &Configuration) -> Result<CurrentWeatherConditions, ProgramError> {
+fn ask_api_for_weather() -> Result<CurrentWeatherConditions, ProgramError> {
+    let configuration = try!(read_configuration());
+    let body = try!(get_request(&configuration.to_url()));
+    let weather_conditions = try!(parse_out_current_conditions(body.as_slice()));
+    Ok(weather_conditions)
+}
+
+fn get_request(url : &Url) -> Result<String, ProgramError>{
     let mut client = Client::new();
 
-    let response : Result<Response, HttpError> = client.get(configuration.to_url().as_slice())
+    let response : Result<Response, HttpError> = client.get(url.as_slice())
         .header(Connection(vec![ConnectionOption::Close]))
         .send();
 
     match response {
         Ok(mut res) => {
             let mut body = String::new();
-            res.read_to_string(&mut body).unwrap();
-
-            Ok(parse_out_current_conditions(&body))
+            match res.read_to_string(&mut body) {
+                Ok(_) => Ok(body),
+                Err(_) => Err(ProgramError { message: "HTTP request failed".to_string() }),
+            }
         },
         Err(_) => Err(ProgramError { message: "HTTP request failed".to_string() })
     }
+
 }
 
 #[derive(Debug)]
@@ -107,9 +112,15 @@ impl Decodable for CurrentWeatherConditions {
     }
 }
 
-fn parse_out_current_conditions(raw_json : &str) -> CurrentWeatherConditions {
-    let wc : CurrentWeatherConditions = json::decode(raw_json).unwrap();
-    wc
+fn parse_out_current_conditions(raw_json : &str) -> Result<CurrentWeatherConditions, ProgramError> {
+    let wc : Result<CurrentWeatherConditions, serialize::json::DecoderError> = json::decode(raw_json);
+    match wc {
+        Ok(wc) => Ok(wc),
+        Err(error) =>{
+            println!("{}", error);
+            Err(ProgramError { message: "JSON parsing failed".to_string() })
+        }
+    }
 }
 
 #[cfg(test)]
@@ -158,6 +169,6 @@ mod tests {
     #[test]
     fn test_parse_json(){
         let json = r##"{"latitude":37.8267,"longitude":-122.423,"timezone":"America/Los_Angeles","offset":-7,"currently":{"time":1425827066,"summary":"Partly Cloudy","icon":"partly-cloudy-day","nearestStormDistance":3,"nearestStormBearing":37,"precipIntensity":0,"precipProbability":0,"temperature":50.87,"apparentTemperature":50.87,"dewPoint":48.98,"humidity":0.93,"windSpeed":3.09,"windBearing":291,"visibility":4.19,"cloudCover":0.53,"pressure":1018.05,"ozone":311.83}}"##;
-        assert_eq!(parse_out_current_conditions(json).icon, "partly-cloudy-day".to_string());
+        assert_eq!(parse_out_current_conditions(json).unwrap().icon, "partly-cloudy-day".to_string());
     }
 }
