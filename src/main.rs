@@ -1,3 +1,4 @@
+#![feature(rustc_private)]
 #![feature(core)]
 #![feature(io)]
 extern crate hyper;
@@ -14,9 +15,14 @@ use hyper::header::ConnectionOption;
 use hyper::client::response::Response as Response;
 use hyper::HttpError as HttpError;
 
+#[allow(dead_code)]
 fn main(){
     match read_configuration() {
-        Ok(config) => ask_api_for_weather(&config),
+        Ok(config) =>
+            match ask_api_for_weather(&config) {
+                Ok(current_conditions) => println!("It is: {}", current_conditions.icon),
+                Err(error) => println!("Something went wrong: {}", error.message),
+            },
         Err(error) => println!("Something went wrong: {}", error.message)
     }
 }
@@ -66,7 +72,7 @@ impl Configuration {
     }
 }
 
-fn ask_api_for_weather(configuration : &Configuration) {
+fn ask_api_for_weather(configuration : &Configuration) -> Result<CurrentWeatherConditions, ProgramError> {
     let mut client = Client::new();
 
     let response : Result<Response, HttpError> = client.get(configuration.to_url().as_slice())
@@ -78,9 +84,9 @@ fn ask_api_for_weather(configuration : &Configuration) {
             let mut body = String::new();
             res.read_to_string(&mut body).unwrap();
 
-            println!("Response: {}", body);
+            Ok(parse_out_current_conditions(&body))
         },
-        Err(_) => println!("Something went wrong")
+        Err(_) => Err(ProgramError { message: "HTTP request failed".to_string() })
     }
 }
 
