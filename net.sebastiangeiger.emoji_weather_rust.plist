@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>net.sebastiangeiger.emoji_weather_rust</string>
+	<key>Program</key>
+  <string>/Users/seb/.bin/emoji_weather_rust</string>
+	<key>StandardInPath</key>
+	<string>/tmp/emoji_weather_rust.stdin</string>
+	<key>StandardOutPath</key>
+	<string>/tmp/emoji_weather_rust.stdout</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/emoji_weather_rust.stderr</string>
+	<key>StartInterval</key>
+	<integer>180</integer>
+</dict>
+</plist>
