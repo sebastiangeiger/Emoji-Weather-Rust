@@ -171,14 +171,18 @@ fn get_request(url : &Url) -> Result<String, ProgramError>{
 #[derive(Debug)]
 struct CurrentWeatherConditions {
     icon: String,
+    temperature: f32,
 }
 
 impl Decodable for CurrentWeatherConditions {
     fn decode<S: Decoder>(decoder: &mut S) -> Result<CurrentWeatherConditions, S::Error> {
         decoder.read_struct("root", 0, |decoder| {
             decoder.read_struct_field("currently", 0, |decoder| {
+                let icon = try!(decoder.read_struct_field("icon", 0, |decoder| Decodable::decode(decoder)));
+                let temperature : f32 = try!(decoder.read_struct_field("temperature", 0, |decoder| Decodable::decode(decoder)));
                 Ok(CurrentWeatherConditions{
-                    icon: try!(decoder.read_struct_field("icon", 0, |decoder| Decodable::decode(decoder))),
+                    temperature: temperature,
+                    icon: icon,
                 })
             })
         })
@@ -244,6 +248,7 @@ mod tests {
     fn test_parse_json(){
         let json = r##"{"latitude":37.8267,"longitude":-122.423,"timezone":"America/Los_Angeles","offset":-7,"currently":{"time":1425827066,"summary":"Partly Cloudy","icon":"partly-cloudy-day","nearestStormDistance":3,"nearestStormBearing":37,"precipIntensity":0,"precipProbability":0,"temperature":50.87,"apparentTemperature":50.87,"dewPoint":48.98,"humidity":0.93,"windSpeed":3.09,"windBearing":291,"visibility":4.19,"cloudCover":0.53,"pressure":1018.05,"ozone":311.83}}"##;
         assert_eq!(parse_out_current_conditions(json).unwrap().icon, "partly-cloudy-day".to_string());
+        assert_eq!(parse_out_current_conditions(json).unwrap().temperature, 50.87);
     }
 
     #[test]
