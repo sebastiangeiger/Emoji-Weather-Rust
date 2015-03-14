@@ -6,6 +6,7 @@ extern crate serialize;
 
 use std::env;
 use std::io::Read;
+use std::io::Write;
 
 use serialize::{json, Decodable, Decoder};
 
@@ -16,6 +17,16 @@ use hyper::status::StatusCode as StatusCode;
 use hyper::client::response::Response as Response;
 use hyper::HttpError as HttpError;
 
+macro_rules! println_stderr(
+    ($($arg:tt)*) => (
+        match writeln!(&mut ::std::io::stderr(), $($arg)* ) {
+            Ok(_) => {},
+            Err(x) => panic!("Unable to write to stderr: {}", x),
+        }
+    )
+);
+
+
 #[allow(dead_code)]
 fn main(){
     match ask_api_for_weather() {
@@ -23,7 +34,7 @@ fn main(){
             let emoji = WeatherIcons::new(current_conditions.icon.as_slice()).to_emoji();
             println!("{}", emoji)
         },
-        Err(error) => panic!("Something went wrong: {}", error.message),
+        Err(error) => println_stderr!("Something went wrong: {}", error.message),
     }
 }
 
