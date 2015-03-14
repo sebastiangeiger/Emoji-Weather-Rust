@@ -12,6 +12,7 @@ use serialize::{json, Decodable, Decoder};
 use hyper::Client;
 use hyper::header::Connection;
 use hyper::header::ConnectionOption;
+use hyper::status::StatusCode as StatusCode;
 use hyper::client::response::Response as Response;
 use hyper::HttpError as HttpError;
 
@@ -138,14 +139,22 @@ fn get_request(url : &Url) -> Result<String, ProgramError>{
     match response {
         Ok(mut res) => {
             let mut body = String::new();
-            match res.read_to_string(&mut body) {
-                Ok(_) => Ok(body),
-                Err(_) => Err(ProgramError { message: "HTTP request failed".to_string() }),
+            match res.status {
+                StatusCode::Ok => {
+                    match res.read_to_string(&mut body) {
+                        Ok(_) => Ok(body),
+                        Err(_) => Err(ProgramError { message: "HTTP request failed".to_string() }),
+                    }
+                },
+                _ => {
+                    let mut message = "HTTP request failed, server returned ".to_string();
+                    message.push_str(res.status.canonical_reason().unwrap());
+                    Err(ProgramError { message: message })
+                }
             }
         },
-        Err(_) => Err(ProgramError { message: "HTTP request failed".to_string() })
+        Err(_) => Err(ProgramError { message: "HTTP request failed, could not reach server".to_string() })
     }
-
 }
 
 #[derive(Debug)]

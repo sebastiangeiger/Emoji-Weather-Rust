@@ -11,6 +11,7 @@ This is my first 'real world' rust project.
   * [ ] Make it read from `~/.weather.conf`
   * [ ] Better error output
   * [ ] Retry 3 times on error
+  * [ ] Show temperature
 
 ## Running it as a service
 
