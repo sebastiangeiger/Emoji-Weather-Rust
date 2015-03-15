@@ -33,7 +33,7 @@ fn main(){
     match ask_api_for_weather() {
         Ok(current_conditions) => {
             let emoji = WeatherIcons::new(current_conditions.icon.as_slice()).to_emoji();
-            println!("{}°{}", current_conditions.temperature_in_celsius(), emoji)
+            println!("{}°/{}°{}", current_conditions.temperature_in_celsius(), current_conditions.temperature.round(), emoji)
         },
         Err(error) => println_stderr!("Something went wrong: {}", error.message),
     }
