@@ -7,6 +7,7 @@ extern crate serialize;
 use std::env;
 use std::io::Read;
 use std::io::Write;
+use std::num::Float;
 
 use serialize::{json, Decodable, Decoder};
 
@@ -32,7 +33,7 @@ fn main(){
     match ask_api_for_weather() {
         Ok(current_conditions) => {
             let emoji = WeatherIcons::new(current_conditions.icon.as_slice()).to_emoji();
-            println!("{}", emoji)
+            println!("{}°{}", current_conditions.temperature_in_celsius(), emoji)
         },
         Err(error) => println_stderr!("Something went wrong: {}", error.message),
     }
@@ -179,13 +180,19 @@ impl Decodable for CurrentWeatherConditions {
         decoder.read_struct("root", 0, |decoder| {
             decoder.read_struct_field("currently", 0, |decoder| {
                 let icon = try!(decoder.read_struct_field("icon", 0, |decoder| Decodable::decode(decoder)));
-                let temperature : f32 = try!(decoder.read_struct_field("temperature", 0, |decoder| Decodable::decode(decoder)));
+                let temperature = try!(decoder.read_struct_field("temperature", 0, |decoder| Decodable::decode(decoder)));
                 Ok(CurrentWeatherConditions{
                     temperature: temperature,
                     icon: icon,
                 })
             })
         })
+    }
+}
+
+impl CurrentWeatherConditions {
+    fn temperature_in_celsius(&self) -> i32 {
+        ((self.temperature - 32.0) * 5.0 / 9.0).round() as i32
     }
 }
 
@@ -208,6 +215,7 @@ mod tests {
     use Configuration;
     use WeatherIcons;
     use ProgramError;
+    use CurrentWeatherConditions;
 
     #[test]
     fn test_read_configuration() {
@@ -249,6 +257,15 @@ mod tests {
         let json = r##"{"latitude":37.8267,"longitude":-122.423,"timezone":"America/Los_Angeles","offset":-7,"currently":{"time":1425827066,"summary":"Partly Cloudy","icon":"partly-cloudy-day","nearestStormDistance":3,"nearestStormBearing":37,"precipIntensity":0,"precipProbability":0,"temperature":50.87,"apparentTemperature":50.87,"dewPoint":48.98,"humidity":0.93,"windSpeed":3.09,"windBearing":291,"visibility":4.19,"cloudCover":0.53,"pressure":1018.05,"ozone":311.83}}"##;
         assert_eq!(parse_out_current_conditions(json).unwrap().icon, "partly-cloudy-day".to_string());
         assert_eq!(parse_out_current_conditions(json).unwrap().temperature, 50.87);
+    }
+
+    #[test]
+    fn test_temperature_in_celcius(){
+        let conditions = CurrentWeatherConditions {
+            icon: "partly-cloudy-day".to_string(),
+            temperature: 50.87
+        };
+        assert_eq!(conditions.temperature_in_celsius(), 10);
     }
 
     #[test]
