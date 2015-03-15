@@ -1,6 +1,6 @@
 [root]
 name = "emoji_weather_rust"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "hyper 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
