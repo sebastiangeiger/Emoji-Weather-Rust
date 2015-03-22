@@ -6,20 +6,18 @@ extern crate hyper;
 extern crate serialize;
 
 use std::env;
-use std::io::Read;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::num::Float;
 use std::fs::File;
 use std::path::Path;
 
 use serialize::{json, Decodable, Decoder};
 
-use hyper::Client;
-use hyper::header::Connection;
-use hyper::header::ConnectionOption;
-use hyper::status::StatusCode as StatusCode;
-use hyper::client::response::Response as Response;
-use hyper::HttpError as HttpError;
+use hyper::{Client, HttpError};
+use hyper::header::{Connection, ConnectionOption};
+use hyper::status::StatusCode;
+use hyper::client::response::Response;
+
 
 macro_rules! println_stderr(
     ($($arg:tt)*) => (
