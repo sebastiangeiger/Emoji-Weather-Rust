@@ -43,7 +43,7 @@ fn main(){
 }
 
 fn ask_api_for_weather() -> Result<CurrentWeatherConditions, ProgramError> {
-    let path = Path::new("weather.conf.example");
+    let path = Path::new("/Users/seb/.weather.conf");
     let configuration = try!(read_configuration(&path));
     let body = try!(get_request(&configuration.to_url()));
     let weather_conditions = try!(parse_out_current_conditions(body.as_slice()));
