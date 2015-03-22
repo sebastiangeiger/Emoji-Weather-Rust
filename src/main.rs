@@ -1,6 +1,7 @@
 #![feature(rustc_private)]
 #![feature(core)]
 #![feature(io)]
+#![feature(path)]
 extern crate hyper;
 extern crate serialize;
 
@@ -9,6 +10,7 @@ use std::io::Read;
 use std::io::Write;
 use std::num::Float;
 use std::fs::File;
+use std::path::Path;
 
 use serialize::{json, Decodable, Decoder};
 
@@ -41,7 +43,8 @@ fn main(){
 }
 
 fn ask_api_for_weather() -> Result<CurrentWeatherConditions, ProgramError> {
-    let configuration = try!(read_configuration());
+    let path = Path::new("weather.conf.example");
+    let configuration = try!(read_configuration(&path));
     let body = try!(get_request(&configuration.to_url()));
     let weather_conditions = try!(parse_out_current_conditions(body.as_slice()));
     Ok(weather_conditions)
@@ -111,20 +114,12 @@ struct Configuration {
 
 type ConfigurationResult = Result<Configuration, ProgramError>;
 
-fn read_configuration() -> ConfigurationResult {
-    let envs = (env::var("FORECAST_IO_API_KEY"), env::var("MY_LAT"), env::var("MY_LNG"));
-    match envs {
-        (Ok(api_key), Ok(lat), Ok(lng)) =>
-            Ok(Configuration { api_key: api_key, lat: lat, lng: lng }),
-
-        (Err(_), _, _) =>
-            Err(ProgramError { message: "ENV['FORECAST_IO_API_KEY'] not set".to_string() }),
-
-        (_, Err(_), _) =>
-            Err(ProgramError { message: "ENV['MY_LAT'] not set".to_string() }),
-
-        (_, _, Err(_)) =>
-            Err(ProgramError { message: "ENV['MY_LNG'] not set".to_string() }),
+fn read_configuration(path : &Path) -> ConfigurationResult {
+    let lat = try!(read_from_file(path, "LAT"));
+    let lng = try!(read_from_file(path, "LNG"));
+    match env::var("FORECAST_IO_API_KEY") {
+        Ok(api_key) => Ok(Configuration { api_key: api_key, lat: lat, lng: lng }),
+        Err(_) => Err(ProgramError { message: "ENV['FORECAST_IO_API_KEY'] not set".to_string() })
     }
 }
 
@@ -132,12 +127,12 @@ fn read_configuration() -> ConfigurationResult {
 fn read_from_file(path : &Path, key : &str) -> Result<String, ProgramError> {
     let contents = try!(read_file(path));
     for line in contents.lines() {
-        let fragments : Vec<&str> = line.split_str("=").collect();
+        let fragments : Vec<&str> = line.split("=").collect();
         if fragments[0] == key {
             return Ok(fragments[1].to_string())
         }
     }
-    Err(ProgramError { message: format!("Could not find '{}' in '{}'", key, path.filename_str().unwrap()) })
+    Err(ProgramError { message: format!("Could not find '{}' in '{}'", key, path.display()) })
 }
 
 fn read_file(path : &Path) -> Result<String, ProgramError> {
@@ -149,7 +144,7 @@ fn read_file(path : &Path) -> Result<String, ProgramError> {
                 Ok(_) => Ok(result),
             }
         },
-        Err(_) => Err(ProgramError { message: format!("Configuration file '{}' does not exist", path.filename_str().unwrap()) })
+        Err(_) => Err(ProgramError { message: format!("Configuration file '{}' does not exist", path.display()) })
     }
 }
 
@@ -236,6 +231,7 @@ fn parse_out_current_conditions(raw_json : &str) -> Result<CurrentWeatherConditi
 #[cfg(test)]
 mod tests {
     use std::env;
+    use std::path::Path;
     use read_from_file;
     use read_configuration;
     use parse_out_current_conditions;
@@ -247,26 +243,24 @@ mod tests {
     #[test]
     fn test_read_configuration() {
         env::set_var("FORECAST_IO_API_KEY", "123-KEY-456");
-        env::set_var("MY_LAT", "33.835297");
-        env::set_var("MY_LNG", "-84.321231");
+        env::remove_var("MY_LNG");
+        env::remove_var("MY_LAT");
+        let config_file = Path::new("weather.conf.example");
+
         let config = Configuration {
             api_key: "123-KEY-456".to_string(),
-            lat: "33.835297".to_string(),
-            lng: "-84.321231".to_string(),
+            lat: "33.825553".to_string(),
+            lng: "-84.338453".to_string(),
         };
-        assert_eq!(read_configuration(), Ok(config));
+        assert_eq!(read_configuration(&config_file), Ok(config));
 
-        env::remove_var("MY_LNG");
-        let error = ProgramError { message: "ENV['MY_LNG'] not set".to_string() };
-        assert_eq!(read_configuration(), Err(error));
-
-        env::remove_var("MY_LAT");
-        let error = ProgramError { message: "ENV['MY_LAT'] not set".to_string() };
-        assert_eq!(read_configuration(), Err(error));
+        let some_file = Path::new("some_file");
+        let file_error = ProgramError { message: "Configuration file 'some_file' does not exist".to_string() };
+        assert_eq!(read_configuration(&some_file), Err(file_error));
 
         env::remove_var("FORECAST_IO_API_KEY");
-        let error = ProgramError { message: "ENV['FORECAST_IO_API_KEY'] not set".to_string() };
-        assert_eq!(read_configuration(), Err(error));
+        let env_error = ProgramError { message: "ENV['FORECAST_IO_API_KEY'] not set".to_string() };
+        assert_eq!(read_configuration(&config_file), Err(env_error));
     }
 
     #[test]
