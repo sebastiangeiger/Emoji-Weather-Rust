@@ -8,6 +8,7 @@ use std::env;
 use std::io::Read;
 use std::io::Write;
 use std::num::Float;
+use std::fs::File;
 
 use serialize::{json, Decodable, Decoder};
 
@@ -127,6 +128,31 @@ fn read_configuration() -> ConfigurationResult {
     }
 }
 
+
+fn read_from_file(path : &Path, key : &str) -> Result<String, ProgramError> {
+    let contents = try!(read_file(path));
+    for line in contents.lines() {
+        let fragments : Vec<&str> = line.split_str("=").collect();
+        if fragments[0] == key {
+            return Ok(fragments[1].to_string())
+        }
+    }
+    Err(ProgramError { message: format!("Could not find '{}' in '{}'", key, path.filename_str().unwrap()) })
+}
+
+fn read_file(path : &Path) -> Result<String, ProgramError> {
+    let mut result = String::new();
+    match File::open(path) {
+        Ok(mut file) => {
+            match file.read_to_string(&mut result) {
+                Err(_) => Err(ProgramError { message: "Could not read configuration file".to_string() }),
+                Ok(_) => Ok(result),
+            }
+        },
+        Err(_) => Err(ProgramError { message: format!("Configuration file '{}' does not exist", path.filename_str().unwrap()) })
+    }
+}
+
 type Url = String;
 
 impl Configuration {
@@ -210,6 +236,7 @@ fn parse_out_current_conditions(raw_json : &str) -> Result<CurrentWeatherConditi
 #[cfg(test)]
 mod tests {
     use std::env;
+    use read_from_file;
     use read_configuration;
     use parse_out_current_conditions;
     use Configuration;
@@ -240,6 +267,19 @@ mod tests {
         env::remove_var("FORECAST_IO_API_KEY");
         let error = ProgramError { message: "ENV['FORECAST_IO_API_KEY'] not set".to_string() };
         assert_eq!(read_configuration(), Err(error));
+    }
+
+    #[test]
+    fn test_read_from_file(){
+        let existing_file_path = Path::new("weather.conf.example");
+        assert_eq!(read_from_file(&existing_file_path, "LAT"), Ok("33.825553".to_string()));
+
+        let non_existing_file_path = Path::new("something_else.conf");
+        let does_not_exist = ProgramError { message: "Configuration file 'something_else.conf' does not exist".to_string() };
+        assert_eq!(read_from_file(&non_existing_file_path, "LAT"), Err(does_not_exist));
+
+        let not_in_file = ProgramError { message: "Could not find 'GARBAGE' in 'weather.conf.example'".to_string() };
+        assert_eq!(read_from_file(&existing_file_path, "GARBAGE"), Err(not_in_file));
     }
 
     #[test]
