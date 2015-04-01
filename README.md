@@ -8,10 +8,10 @@ This is my first 'real world' rust project.
 
 
 ## TODO
-  * [ ] Make it read from `~/.weather.conf`
+  * [x] Make it read from `~/.weather.conf`
   * [x] Better error output
-  * [ ] Retry 3 times on error
   * [x] Show temperature
+  * [ ] Add it to homebrew
 
 ## Running it as a service
 
