@@ -6,4 +6,3 @@ rust:
 script:
     - cargo build
     - cargo test
-    - cargo bench --no-run
