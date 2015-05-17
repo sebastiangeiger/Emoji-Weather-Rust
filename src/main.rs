@@ -8,10 +8,9 @@ use std::path::Path;
 
 use rustc_serialize::{json, Decodable, Decoder};
 
-use hyper::{Client, HttpError};
-use hyper::header::{Connection, ConnectionOption};
+use hyper::Client;
+use hyper::header::Connection;
 use hyper::status::StatusCode;
-use hyper::client::response::Response;
 
 
 macro_rules! println_stderr(
@@ -158,8 +157,8 @@ impl Configuration {
 fn get_request(url : &Url) -> Result<String, ProgramError>{
     let mut client = Client::new();
 
-    let response : Result<Response, HttpError> = client.get(url)
-        .header(Connection(vec![ConnectionOption::Close]))
+    let response = client.get(url)
+        .header(Connection::close())
         .send();
 
     match response {
