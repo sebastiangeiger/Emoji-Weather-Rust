@@ -6,3 +6,4 @@ authors = ["Sebastian Geiger"]
 
 [dependencies]
 hyper = "0.3.0"
+rustc-serialize = "0.3.14"

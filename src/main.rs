@@ -1,17 +1,12 @@
-#![feature(rustc_private)]
-#![feature(core)]
-#![feature(io)]
-#![feature(path)]
 extern crate hyper;
-extern crate serialize;
+extern crate rustc_serialize;
 
 use std::env;
 use std::io::{Read, Write};
-use std::num::Float;
 use std::fs::File;
 use std::path::Path;
 
-use serialize::{json, Decodable, Decoder};
+use rustc_serialize::{json, Decodable, Decoder};
 
 use hyper::{Client, HttpError};
 use hyper::header::{Connection, ConnectionOption};
@@ -33,7 +28,7 @@ macro_rules! println_stderr(
 fn main(){
     match ask_api_for_weather() {
         Ok(current_conditions) => {
-            let emoji = WeatherIcons::new(current_conditions.icon.as_slice()).to_emoji();
+            let emoji = WeatherIcons::new(current_conditions.icon.as_ref()).to_emoji();
             println!("{}°/{}°{}", current_conditions.temperature_in_celsius(), current_conditions.temperature.round(), emoji)
         },
         Err(error) => println_stderr!("Something went wrong: {}", error.message),
@@ -44,7 +39,7 @@ fn ask_api_for_weather() -> Result<CurrentWeatherConditions, ProgramError> {
     let path = Path::new("/Users/seb/.weather.conf");
     let configuration = try!(read_configuration(&path));
     let body = try!(get_request(&configuration.to_url()));
-    let weather_conditions = try!(parse_out_current_conditions(body.as_slice()));
+    let weather_conditions = try!(parse_out_current_conditions(body.as_ref()));
     Ok(weather_conditions)
 }
 
@@ -151,11 +146,11 @@ type Url = String;
 impl Configuration {
     fn to_url(&self) -> Url {
         let mut result : Url = "https://api.forecast.io/forecast/".to_string();
-        result.push_str(self.api_key.as_slice());
+        result.push_str(self.api_key.as_ref());
         result.push_str("/");
-        result.push_str(self.lat.as_slice());
+        result.push_str(self.lat.as_ref());
         result.push_str(",");
-        result.push_str(self.lng.as_slice());
+        result.push_str(self.lng.as_ref());
         result
     }
 }
@@ -163,7 +158,7 @@ impl Configuration {
 fn get_request(url : &Url) -> Result<String, ProgramError>{
     let mut client = Client::new();
 
-    let response : Result<Response, HttpError> = client.get(url.as_slice())
+    let response : Result<Response, HttpError> = client.get(url)
         .header(Connection(vec![ConnectionOption::Close]))
         .send();
 
@@ -216,7 +211,7 @@ impl CurrentWeatherConditions {
 }
 
 fn parse_out_current_conditions(raw_json : &str) -> Result<CurrentWeatherConditions, ProgramError> {
-    let wc : Result<CurrentWeatherConditions, serialize::json::DecoderError> = json::decode(raw_json);
+    let wc : Result<CurrentWeatherConditions, rustc_serialize::json::DecoderError> = json::decode(raw_json);
     match wc {
         Ok(wc) => Ok(wc),
         Err(error) =>{

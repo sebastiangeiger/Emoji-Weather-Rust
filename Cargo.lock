@@ -3,6 +3,7 @@ name = "emoji_weather_rust"
 version = "0.0.4"
 dependencies = [
  "hyper 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
